@@ -1,6 +1,6 @@
 # Wordpress Boilerplate
 
-A boilerplate for my particular flavor of Wordpress.  I like to customize things, so this is Wordpress customized.
+My personal portfolio site, where I write about the things that matter to me.
 
 ## Technologies Used
 - HTML ( 5 ), CSS ( 3 ), JS ( [jQuery](http://jquery.com/download/) )
@@ -12,7 +12,7 @@ A boilerplate for my particular flavor of Wordpress.  I like to customize things
 ## Installation
 
 1. `git clone git@github.com:apermanentwreck/wordpress-boilerplate.git .`
-2. `cd wordpress-boilerplate` or whatever you've named it.
+2. `cd wordpress-boilerplate`
 3. `git submodule update --init`
 4. Set up [MAMP Pro](http://www.mamp.info/en/downloads/index.html) for `dev.{{ domain }}` as virtual host
 5. Create dB in [Sequel Pro](https://code.google.com/p/sequel-pro/downloads/list) (settings are in config/db-settings.dev.php)

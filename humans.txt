@@ -1,0 +1,21 @@
+# humanstxt.org/
+
+/* TEAM */
+	Developer: {{ insert name }}
+	Contact: {{ insert email }}
+	Twitter: @{{ insert twitter handle }}
+	Github: https://github.com/{{ insert github username }}
+	From: {{ insert location}}
+
+/* THANKS */
+	Wordpress Boilerplate: Newton
+	Contact: u [at] wrck.me
+	Twitter: @apermanentwreck
+	Github: https://github.com/apermanentwreck
+	From: Redondo Beach, California, United States
+	
+/* SITE */
+	Last updated: {{ insert date }}
+	Language: {{ insert language }}
+	Doctype: HTML5
+	IDE: {{ insert editor }}
