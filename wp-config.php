@@ -23,53 +23,18 @@ define( 'WP_PLUGIN_URL', 'http://' . $_SERVER['SERVER_NAME'] . '/plugins' );
 define( 'WP_DEFAULT_THEME', 'apw' );
 define( 'PLUGINDIR', 'http://' . $_SERVER['SERVER_NAME'] . '/plugins' );
 
+// Sets the config file based on current environment
+if ( strpos( $_SERVER['HTTP_HOST'], 'dev' ) !== false ) {
+	$config_file = 'config/db-settings.dev.php';
+} else {
+	$config_file = 'config/db-settings.prod.php';
+}
 
-// ** MySQL settings - You can get this info from your web host ** //
-/** The name of the database for WordPress */
-define('DB_NAME', 'database_name_here');
-
-/** MySQL database username */
-define('DB_USER', 'username_here');
-
-/** MySQL database password */
-define('DB_PASSWORD', 'password_here');
-
-/** MySQL hostname */
-define('DB_HOST', 'localhost');
-
-/** Database Charset to use in creating database tables. */
-define('DB_CHARSET', 'utf8');
-
-/** The Database Collate type. Don't change this if in doubt. */
-define('DB_COLLATE', '');
-
-/**#@+
- * Authentication Unique Keys and Salts.
- *
- * Change these to different unique phrases!
- * You can generate these using the {@link https://api.wordpress.org/secret-key/1.1/salt/ WordPress.org secret-key service}
- * You can change these at any point in time to invalidate all existing cookies. This will force all users to have to log in again.
- *
- * @since 2.6.0
- */
-define('AUTH_KEY',         'put your unique phrase here');
-define('SECURE_AUTH_KEY',  'put your unique phrase here');
-define('LOGGED_IN_KEY',    'put your unique phrase here');
-define('NONCE_KEY',        'put your unique phrase here');
-define('AUTH_SALT',        'put your unique phrase here');
-define('SECURE_AUTH_SALT', 'put your unique phrase here');
-define('LOGGED_IN_SALT',   'put your unique phrase here');
-define('NONCE_SALT',       'put your unique phrase here');
-
-/**#@-*/
-
-/**
- * WordPress Database Table prefix.
- *
- * You can have multiple installations in one database if you give each a unique
- * prefix. Only numbers, letters, and underscores please!
- */
-$table_prefix  = 'wp_';
+// include the config file if it exists, otherwise WP is going to fail
+$path = dirname(__FILE__) . '/';
+if ( file_exists( $path . $config_file ) ) {
+	require_once $path . $config_file;
+}
 
 /**
  * WordPress Localized Language, defaults to English.
@@ -89,6 +54,13 @@ define('WPLANG', '');
  * in their development environments.
  */
 define('WP_DEBUG', false);
+
+/**
+ * For developers: WordPress debugging mode.
+ *
+ * Change this to true if you are planning on modifying some of WordPress' built-in JavaScript or Cascading Style Sheets.
+ */
+define('SCRIPT_DEBUG', false);
 
 /* That's all, stop editing! Happy blogging. */
 
