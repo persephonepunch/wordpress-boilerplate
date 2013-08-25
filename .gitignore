@@ -8,6 +8,7 @@ plugins/.DS_Store
 # Wordpress Files
 config/db-settings.dev.php
 config/db-settings.prod.php
+config/settings.json
 wp-config.php
 cms/wp-content/blogs.dir/
 cms/wp-content/upgrade/
