@@ -470,17 +470,50 @@ function steel_get_link_url() {
  */
 function steel_body_class( $classes ) {
 	if ( ! is_multi_author() )
-		$classes[] = 'single-author';
+		$classes[] = 'Author';
 
 	if ( is_active_sidebar( 'sidebar-2' ) && ! is_attachment() && ! is_404() )
-		$classes[] = 'sidebar';
+		$classes[] = 'Sidebar';
 
-	if ( ! get_option( 'show_avatars' ) )
-		$classes[] = 'no-avatars';
-
+	if ( is_home() || is_front_page() ) {
+		$classes[] = 'Home';
+	}
 	return $classes;
 }
 add_filter( 'body_class', 'steel_body_class' );
+
+/**
+ * strips the posts_class() in order to format it to my
+ * styleguide requirements
+ */
+function strip_post_class( $arr ) {
+	$tmp = array();
+	for ( $i = 0; $i < count( $arr ); $i++ ) {
+		// post ID
+		$arr[0] = null;
+		// post type
+		$arr[1] = ucwords( $arr[1] );
+		// post type duplicated as 'post-[post_type]'
+		$arr[2] = null;
+		// post status
+		$arr[3] = null;
+		// post format
+		$arr[4] = str_replace( 'format-', '', $arr[4] );
+		if ( $arr[$i] === 'hentry' ) {
+			$arr[$i] = null;
+		}
+		if ( substr( $arr[$i], 0, 8 ) === 'category' ) {
+			$arr[$i] = str_replace( 'category-', '', $arr[$i] );
+		}
+		if ( substr( $arr[$i], 0, 3 ) === 'tag' ) {
+			$arr[$i] = str_replace( 'tag-', '', $arr[$i] );
+		}
+		if ( $arr[$i] !== null ) {
+			array_push( $tmp, $arr[$i] ); 
+		}
+	}
+	return implode(' ', $tmp);
+}
 
 /**
  * Adjusts content_width value for video post formats and attachment templates.
@@ -524,3 +557,269 @@ function steel_customize_preview_js() {
 	wp_enqueue_script( 'steel-customizer', get_template_directory_uri() . '/js/theme-customizer.js', array( 'customize-preview' ), '20130226', true );
 }
 add_action( 'customize_preview_init', 'steel_customize_preview_js' );
+
+function custom_excerpt_more( $excerpt ) {
+	return str_replace( ' [...]', '&hellip;', $excerpt );
+}
+add_filter( 'wp_trim_excerpt', 'custom_excerpt_more' );
+
+add_action('publish_post', 'create_bitly');
+
+// create bitly url when post is published
+function create_bitly( $postID ) {
+	$settings = json_decode( file_get_contents( $_SERVER['DOCUMENT_ROOT'] . '/config/settings.json'), true );
+	global $wpdb;
+
+	// here we get the permalink to your post
+	$url = get_permalink( $postID ); 
+	// This is the API call to fetch the shortened URL
+	$bitly = 'https://api-ssl.bitly.com/v3/shorten?access_token=' . $settings['bitly'] . '&longUrl=' . urlencode( $url );
+
+	// We are using cURL
+	$curl = curl_init();
+	curl_setopt( $curl, CURLOPT_CONNECTTIMEOUT, 5 );
+	curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
+	curl_setopt( $curl, CURLOPT_URL, $bitly );
+	$results = json_decode( curl_exec( $curl ) );
+	curl_close( $curl );
+
+	// adding the short URL to a custom field called bitlyURL
+	update_post_meta( $postID, 'bitlyURL', $results->data->url ); 
+}
+
+// add the short url to the head
+function bitly_shortlink() {
+	global $post;
+	$url = get_post_meta( $post->ID, 'bitlyURL', true );
+
+	return ( ! empty( $url ) ) ? $url : get_bloginfo( 'url' ) . '?p=' . $post->ID;
+}
+
+// filtering the WP function
+add_filter('pre_get_shortlink', 'get_bitly_shortlink'); 
+
+function get_bitly_shortlink() {
+	global $post;
+	$url = get_post_meta( $post->ID, 'bitlyURL', true );
+
+	if( ! empty( $url ) ) {
+		return $url;
+	} else {
+		return null;
+	}
+}
+
+function shortlink_pretty_url( $url ) {
+	$arr = parse_url( $url );
+	return $arr['host'] . $arr['path'];
+}
+
+function stylesheet_url( $path ) {
+	return esc_url( home_url( 'ui/stylesheets/' . $path ) );
+}
+
+function image_path_url( $path ) {
+	return esc_url( home_url( 'ui/images/' . $path ) );
+}
+
+function favicon_url( $path ) {
+	return esc_url( home_url( 'ui/images/favicons/' . $path ) );
+}
+
+// this is the relative path from WP_CONTENT_DIR to your uploads directory
+// update_option( 'upload_path', '../media/uploads' );
+// this is the actual path to the image uploads, needs to be absolute;
+// update_option( 'upload_url_path', WP_HOME . '/media/uploads' );
+if ( get_option( 'upload_path' ) == null || get_option( 'upload_path' ) == 'content/uploads' || get_option( 'upload_path' ) == 'wp-content/uploads' ) {
+	update_option( 'upload_path', '../media/uploads' );
+	update_option( 'upload_url_path', WP_HOME . '/media/uploads' );
+}
+
+function breadcrumbs( $id ) {
+	$html = '<ol class="Breacrumbs">';
+	$html .= '<li class="Icon solo item"><a href="' . esc_url( home_url() ) . '" title="' . __( 'Return back to the home page', 'twentytwelve' ) . '">&#x2302;</a></li>';
+}
+
+function the_breadcrumbs() {
+
+	/* === OPTIONS === */
+	$text['home']     = 'Home'; // text for the 'Home' link
+	$text['category'] = '%s'; // text for a category page
+	$text['search']   = 'Search Results for "%s"'; // text for a search results page
+	$text['tag']      = '%s'; // text for a tag page
+	$text['author']   = 'Articles by %s'; // text for an author page
+	$text['404']      = '404'; // text for the 404 page
+
+	$show_current   = 1; // 1 - show current post/page/category title in breadcrumbs, 0 - don't show
+	$show_title     = 1; // 1 - show the title for the links, 0 - don't show
+	$before         = '<li class="item" itemprop="child" itemscope itemtype="http://data-vocabulary.org/Breadcrumb"><b itemprop="title">'; // tag before the current crumb
+	$after          = '</b></li>'; // tag after the current crumb
+	/* === END OF OPTIONS === */
+
+	global $post;
+	$home_link    = home_url('/');
+	$link_before  = '<li class="item" itemprop="child" itemscope itemtype="http://data-vocabulary.org/Breacrumb">';
+	$link_after   = '</li>';
+	$link_attr    = ' rel="directory" itemprop="url"';
+	$link         = $link_before . '<a href="%1$s" ' . $link_attr . '><span itemprop="title">%2$s</span></a>' . $link_after;
+	$parent_id    = $parent_id_2 = $post->post_parent;
+	$frontpage_id = get_option('page_on_front');
+
+	if ( ! ( is_home() || is_front_page() ) ) {
+
+		echo '<ol class="Breadcrumbs" itemscope itemtype="http://data-vocabulary.org/Breadcrumb">';
+		echo '<li class="Icon solo item" itemscope itemtype="http://data-vocabulary.org/Breadcrumb"><a href="' . esc_url( home_url() ) . '" rel="home" itemprop="url" title="' . __( 'Return back to the home page', 'twentytwelve' ) . '">&#x2302;</a></li>';
+
+		if ( is_category() ) {
+			$this_cat = get_category(get_query_var('cat'), false);
+			if ($this_cat->parent != 0) {
+				$cats = get_category_parents($this_cat->parent, TRUE, $delimiter);
+				if ($show_current == 0) $cats = preg_replace("#^(.+)$delimiter$#", "$1", $cats);
+				$cats = str_replace('">', '"><span itemprop="title">', $cats);
+				$cats = str_replace('</a>', '</span></a>' . $link_after, $cats);
+				$cats = str_replace('<a', $link_before . '<a' . $link_attr . '<span itemprop="title">', $cats);
+				if ($show_title == 0) $cats = preg_replace('/ title="(.*?)"/', '', $cats);
+				echo $cats;
+			}
+			if ($show_current == 1) echo $before . sprintf( ucwords( $text['category'] ), single_cat_title('', false)) . $after;
+
+		} elseif ( is_search() ) {
+			echo $before . sprintf( ucwords( $text['search'] ), get_search_query()) . $after;
+
+		} elseif ( is_day() ) {
+			echo sprintf($link, get_year_link(get_the_time('Y')), get_the_time('Y')) . $delimiter;
+			echo sprintf($link, get_month_link(get_the_time('Y'),get_the_time('m')), get_the_time('F')) . $delimiter;
+			echo $before . get_the_time('d') . $after;
+
+		} elseif ( is_month() ) {
+			echo sprintf($link, get_year_link(get_the_time('Y')), get_the_time('Y')) . $delimiter;
+			echo $before . get_the_time('F') . $after;
+
+		} elseif ( is_year() ) {
+			echo $before . get_the_time('Y') . $after;
+
+		} elseif ( is_single() && !is_attachment() ) {
+			if ( get_post_type() != 'post' ) {
+				$post_type = get_post_type_object(get_post_type());
+				$slug = $post_type->rewrite;
+				printf($link, $home_link . '/' . $slug['slug'] . '/', $post_type->labels->singular_name);
+				if ($show_current == 1) echo $delimiter . $before . get_the_title() . $after;
+			} else {
+				$cat = get_the_category(); $cat = $cat[0];
+				$cats = get_category_parents($cat, TRUE, '');
+				$cats = str_replace('">', '"><span itemprop="title">', $cats);
+				$cats = str_replace('</a>', '</span></a>' . $link_after, $cats);
+				$cats = str_replace('<a', $link_before . '<a' . $link_attr, $cats);
+				if ($show_title == 0) $cats = preg_replace('/ title="(.*?)"/', '', $cats);
+				echo $cats;
+				if ($show_current == 1) echo $before . get_the_title() . $after;
+			}
+
+		} elseif ( !is_single() && !is_page() && get_post_type() != 'post' && !is_404() ) {
+			$post_type = get_post_type_object(get_post_type());
+			echo $before . $post_type->labels->singular_name . $after;
+
+		} elseif ( is_attachment() ) {
+			$parent = get_post($parent_id);
+			$cat = get_the_category($parent->ID); 
+			if ( count( $cat ) > 0 ) {
+				$cat = $cat[0];
+				$cats = get_category_parents($cat, TRUE, '');
+				$cats = str_replace('">', '"><span itemprop="title">', $cats);
+				$cats = str_replace('</a>', '</span></a>' . $link_after, $cats);
+				$cats = str_replace('<a', $link_before . '<a' . $link_attr, $cats);
+				if ($show_title == 0) $cats = preg_replace('/ title="(.*?)"/', '', $cats);
+				echo $cats;
+				printf($link, get_permalink($parent), $parent->post_title);
+				if ($show_current == 1) echo $delimiter . $before . get_the_title() . $after;
+			} else {
+				echo '<li class="item" itemprop="child" itemscope itemtype="http://data-vocabulary.org/Breadcrumb"><b itemprop="title">' . $parent->post_title . '</b></li>';
+			}
+
+		} elseif ( is_page() && !$parent_id ) {
+			if ($show_current == 1) echo $before . get_the_title() . $after;
+
+		} elseif ( is_page() && $parent_id ) {
+			if ($parent_id != $frontpage_id) {
+				$breadcrumbs = array();
+				while ($parent_id) {
+					$page = get_page($parent_id);
+					if ($parent_id != $frontpage_id) {
+						$breadcrumbs[] = sprintf($link, get_permalink($page->ID), get_the_title($page->ID));
+					}
+					$parent_id = $page->post_parent;
+				}
+				$breadcrumbs = array_reverse($breadcrumbs);
+				for ($i = 0; $i < count($breadcrumbs); $i++) {
+					echo $breadcrumbs[$i];
+					if ($i != count($breadcrumbs)-1) echo $delimiter;
+				}
+			}
+			if ($show_current == 1) {
+				if ($show_home_link == 1 || ($parent_id_2 != 0 && $parent_id_2 != $frontpage_id)) echo $delimiter;
+				echo $before . get_the_title() . $after;
+			}
+
+		} elseif ( is_tag() ) {
+			echo $before . sprintf( ucwords( $text['tag'] ), single_tag_title('', false)) . $after;
+
+		} elseif ( is_author() ) {
+	 		global $author;
+			$userdata = get_userdata($author);
+			echo $before . sprintf( ucwords( $text['author'] ), $userdata->display_name) . $after;
+
+		} elseif ( is_404() ) {
+			echo $before . ucwords( $text['404'] ) . $after;
+		}
+
+		if ( get_query_var('paged') ) {
+			if ( is_category() || is_day() || is_month() || is_year() || is_search() || is_tag() || is_author() ) echo ' (';
+			echo __('Page') . ' ' . get_query_var('paged');
+			if ( is_category() || is_day() || is_month() || is_year() || is_search() || is_tag() || is_author() ) echo ')';
+		}
+
+		echo '</ol>';
+
+	}
+}
+//  add subtitle to posts and pages
+function the_subtitle( $id ) {
+	$subtitle = get_post_meta ( $id, 'subtitle', true );
+	if ( ! empty( $subtitle ) ) {
+		echo '<h2 class="subtitle">' . $subtitle . '</h2>';
+	}
+}
+function search_url_rewrite() {
+	if ( is_search() && ! empty( $_GET['s'] ) ) {
+		wp_redirect( home_url( "/search/" ) . urlencode( get_query_var( 's' ) ) );
+		exit();
+	}   
+}
+add_action( 'template_redirect', 'search_url_rewrite' );
+
+/**
+ * removes the rss feed, comments rss feed, rsd_link, 
+ * wlwmanifest_link, & wp_generator
+ *
+ * i added the rss feed, rsd_link, wlwmanifest_link
+ * on the header.php
+ */
+remove_action( 'wp_head', 'feed_links', 2 );
+remove_action( 'wp_head', 'feed_links_extra', 3 );
+remove_action( 'wp_head', 'rsd_link' );
+remove_action( 'wp_head', 'wlwmanifest_link' );
+// trying to figure out how to get these 2 back
+// in to the header.php
+//remove_filter( 'wp_head', 'adjacent_posts_rel_link_wp_head', 10 );
+remove_action( 'wp_head', 'locale_stylesheet' );
+remove_action( 'wp_head', 'noindex', 1 );
+remove_action( 'wp_head', 'wp_print_styles', 8 );
+remove_action( 'wp_head', 'wp_print_head_scripts', 9 );
+remove_action( 'wp_head', 'wp_generator' );
+remove_action( 'wp_head', 'rel_canonical' );
+remove_action( 'wp_footer', 'wp_print_footer_scripts', 20 );
+// removes the link tag for the wp.me shortlink that gets generated
+remove_action( 'wp_head', 'shortlink_wp_head', 10 );
+// removing the default shortlink
+remove_action( 'wp_head', 'wp_shortlink_wp_head', 10, 0 ); 
+remove_action( 'wp_print_footer_scripts', '_wp_footer_scripts' );
