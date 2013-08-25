@@ -573,18 +573,22 @@ function create_bitly( $postID ) {
 	// here we get the permalink to your post
 	$url = get_permalink( $postID ); 
 	// This is the API call to fetch the shortened URL
-	$bitly = 'https://api-ssl.bitly.com/v3/shorten?access_token=' . $settings['bitly'] . '&longUrl=' . urlencode( $url );
+	$bitly = ( $settings['bitly'] ) ? 'https://api-ssl.bitly.com/v3/shorten?access_token=' . $settings['bitly'] . '&longUrl=' . urlencode( $url ) : null;
 
 	// We are using cURL
-	$curl = curl_init();
-	curl_setopt( $curl, CURLOPT_CONNECTTIMEOUT, 5 );
-	curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
-	curl_setopt( $curl, CURLOPT_URL, $bitly );
-	$results = json_decode( curl_exec( $curl ) );
-	curl_close( $curl );
+	if ( $bitly ) {
+		$curl = curl_init();
+		curl_setopt( $curl, CURLOPT_CONNECTTIMEOUT, 5 );
+		curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
+		curl_setopt( $curl, CURLOPT_URL, $bitly );
+		$results = json_decode( curl_exec( $curl ) );
+		curl_close( $curl );
 
-	// adding the short URL to a custom field called bitlyURL
-	update_post_meta( $postID, 'bitlyURL', $results->data->url ); 
+		// adding the short URL to a custom field called bitlyURL
+		update_post_meta( $postID, 'bitlyURL', $results->data->url ); 
+	} else {
+		return false;
+	}
 }
 
 // add the short url to the head
@@ -764,7 +768,7 @@ function the_breadcrumbs() {
 			echo $before . sprintf( ucwords( $text['tag'] ), single_tag_title('', false)) . $after;
 
 		} elseif ( is_author() ) {
-	 		global $author;
+			global $author;
 			$userdata = get_userdata($author);
 			echo $before . sprintf( ucwords( $text['author'] ), $userdata->display_name) . $after;
 
