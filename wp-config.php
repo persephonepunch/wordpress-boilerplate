@@ -16,8 +16,12 @@
 
 define('WP_SITEURL', 'http://' . $_SERVER['SERVER_NAME'] . '/cms');
 define('WP_HOME',    'http://' . $_SERVER['SERVER_NAME']);
-define('WP_CONTENT_DIR', $_SERVER['DOCUMENT_ROOT'] . '/content');
-define('WP_CONTENT_URL', 'http://' . $_SERVER['SERVER_NAME'] . '/content');
+define( 'WP_CONTENT_DIR', $_SERVER['DOCUMENT_ROOT'] . '/content' );
+define( 'WP_PLUGIN_DIR', $_SERVER['DOCUMENT_ROOT'] . '/plugins' );
+define( 'WP_CONTENT_URL', 'http://' . $_SERVER['SERVER_NAME'] . '/content' );
+define( 'WP_PLUGIN_URL', 'http://' . $_SERVER['SERVER_NAME'] . '/plugins' );
+define( 'WP_DEFAULT_THEME', 'apw' );
+define( 'PLUGINDIR', 'http://' . $_SERVER['SERVER_NAME'] . '/plugins' );
 
 
 // ** MySQL settings - You can get this info from your web host ** //
