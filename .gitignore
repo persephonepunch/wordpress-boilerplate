@@ -6,7 +6,9 @@ media/.DS_Store
 plugins/.DS_Store
 
 # Wordpress Files
-wp-config.php	
+config/db-settings.dev.php
+config/db-settings.prod.php
+wp-config.php
 cms/wp-content/blogs.dir/
 cms/wp-content/upgrade/
 cms/wp-content/backup-db/
